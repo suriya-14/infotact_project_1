@@ -1,0 +1,24 @@
+# Infotact Project Ignored Directories
+Documents/
+
+# Environments
+.venv/
+venv/
+env/
+.env
+
+# Python Cache & Bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Large Datasets & Trained Models
+data/
+models/
+
+# Editor/OS Specific Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
