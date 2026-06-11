@@ -1,4 +1,4 @@
-# infotact_project_1
+# Infotact_project_1
 # Project Title
 Reinforcement Learning for Dynamic Pricing
 
