@@ -49,29 +49,24 @@ graph TD
 ## 📂 Repository Structure
 
 ```
-hotel_pricing_rl/
-├── environments/
-│   └── hotel_pricing_env.py       # Custom Gym environment
-│
+project/
+|
 ├── agents/
-│   ├── baseline_agents.py         # Fixed, linear discount, random
-│   ├── q_learning_agent.py        # Tabular Q-Learning
-│   └── dqn_agent.py               # Deep Q-Network (PyTorch)
-│
-├── notebooks/
-│   ├── week1_env_testing.ipynb
-│   ├── week2_baselines_vs_qlearning.ipynb
-│   ├── week3_dqn_training.ipynb
-│   └── week4_evaluation_dashboard.ipynb
-│
-├── scripts/
-│   ├── train_dqn.py               # CLI training script
-│   └── evaluate_agents.py         # Evaluation harness
-│
-├── plots/                         # Saved evaluation charts
-├── .gitignore                     # Git ignore file (excluding data/, models/)
-├── requirements.txt
-└── README.md                      # Project documentation
+|   ├── fixed_price_agent.py        ← from Member 1
+|   ├── time_based_agent.py         ← from Member 2
+|   ├── inventory_based_agent.py    ← from Member 3
+|   ├── qlearning_agent.py          ← from Member 2
+|   └── dqn_agent.py                ← from Member 3
+|
+├── environment/
+|   └── airline_pricing_env.py      ← from Member 1
+|
+├── models/
+|   └── dqn_weights.pth             ← trained weights from Member 3
+|
+├── dashboard/
+|   └── app.py                      ← Member 4's Streamlit app
+└── README.md
 ```
 
 ---
