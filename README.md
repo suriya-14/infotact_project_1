@@ -20,14 +20,13 @@ project/
 │   └── airline_pricing_env.py        ← Member 1: Custom Gym Environment
 │
 ├── agents/
-│   ├── fixed_price_agent.py          ← Member 2: Fixed Price Baseline
+│   ├── fixed_price_agent.py          ← Member 1: Fixed Price Baseline
 │   ├── time_based_agent.py           ← Member 2: Time-Based Baseline
-│   ├── inventory_based_agent.py      ← Member 2: Inventory-Based Baseline
+│   ├── inventory_based_agent.py      ← Member 3: Inventory-Based Baseline
 │   ├── qlearning_agent.py            ← Member 2: Q-Learning Agent
 │   └── dqn_agent.py                  ← Member 3: Deep Q-Network Agent
 │
 ├── models/
-│   ├── qtable_trained.npy            ← Member 2: Trained Q-Table weights
 │   └── dqn_weights.pth               ← Member 3: Trained DQN weights
 │
 ├── dashboard/
