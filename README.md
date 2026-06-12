@@ -40,6 +40,20 @@ Implementation work will begin in the next development phase.
 * Performance Evaluation
 * Final Documentation
 
+# Time Based Agent
+
+Purpose:
+- Reduce ticket price as departure date approaches.
+
+Inputs:
+- days_left
+
+Output:
+- recommended_price
+
+Status:
+- Waiting for environment integration.
+
 ## Repository
 
 This repository contains all project-related code, documentation, experiments, and reports developed during the internship.
