@@ -35,17 +35,17 @@ def main():
 
         print(
             f"Step {step_count:2d} | "
-            f"Action Index: {action} (Price: ₹{price:4d}) | "
+            f"Action Index: {action} (Price: INR {price:4d}) | "
             f"Demand: {step_info['demand']:2d} | "
             f"Sold: {step_info['sold']:2d} | "
-            f"Revenue: ₹{reward:6.0f} | "
+            f"Revenue: INR {reward:6.0f} | "
             f"Remaining Inventory: {obs[0]:2.0f} | "
             f"Days Left: {obs[1]:2.0f}"
         )
 
     print("\n=== Episode Finished ===")
     print(f"Total Steps Run: {step_count}")
-    print(f"Total Episodic Revenue: ₹{env.total_revenue:.2f}")
+    print(f"Total Episodic Revenue: INR {env.total_revenue:.2f}")
     print(f"Final Inventory: {env.inventory}/{env.max_inventory}")
     print(f"Reason for termination: {'Out of Inventory' if env.inventory <= 0 else 'Out of Time'}")
 
