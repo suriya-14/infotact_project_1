@@ -282,15 +282,4 @@ git push origin main
 
 ---
 
-## 👥 Team
-
-| Member | Week | Contribution |
-|---|---|---|
-| Member 1 | Week 1 | MDP Design + Custom Gym Environment + Fixed Price Agent |
-| Member 2 | Week 2 | Time-Based Agent + Q-Learning Agent |
-| **Member 3** | **Week 3** | **Inventory-Based Agent + DQN Agent + Trained Weights** |
-| Member 4 | Week 4 | Policy Evaluation + Streamlit Dashboard + GitHub |
-
----
-
 *Project: RL Dynamic Pricing | Travel & Hospitality Domain | Internship Project*
