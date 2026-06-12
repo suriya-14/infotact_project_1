@@ -260,21 +260,6 @@ Make sure the following files are included before pushing:
 ✅ README.md
 ```
 
----
-
-## 👥 Team
-
-| Member | Week | Contribution |
-|---|---|---|
-| Member 1 | Week 1 | MDP Design + Custom Gym Environment + Demand Function |
-| Member 2 | Week 2 | Baseline Agents + Q-Learning Agent + Q-Table |
-| Member 3 | Week 3 | DQN Agent + Epsilon-Greedy + Experience Replay |
-| **Member 4** | **Week 4** | **Policy Evaluation + Streamlit Dashboard + GitHub** |
-
----
-
-## 📬 Contact
-
 For issues related to the dashboard or evaluation scripts, raise a GitHub issue or contact Member 4 directly.
 
 ---
