@@ -46,28 +46,105 @@ graph TD
 
 ---
 
+## 🧠 Markov Decision Process (MDP) Formulation
+
+The dynamic pricing problem is modeled as a finite-horizon, discrete-action Markov Decision Process.
+
+### 1. State Space ($S$)
+The state is represented as a 2D continuous vector:
+$$s = [\text{inventory}, \text{days\_left}]$$
+- **`inventory`**: Number of remaining tickets/seats (bounds: $[0, \text{max\_inventory}]$).
+- **`days_left`**: Days left until the flight departure (bounds: $[0, \text{max\_days}]$).
+
+### 2. Action Space ($A$)
+The action space is a discrete menu of price levels:
+$$A \in \{0, 1, 2, 3, 4\}$$
+Each action maps to a specific price:
+- `0` $\rightarrow$ **₹2,000**
+- `1` $\rightarrow$ **₹3,000**
+- `2` $\rightarrow$ **₹4,000**
+- `3` $\rightarrow$ **₹5,000**
+- `4` $\rightarrow$ **₹6,000**
+
+### 3. Transition Dynamics & Stochastic Demand
+At each step, the environment computes customer demand based on the chosen price, remaining days, and the urgency as the deadline approaches.
+
+The **expected demand** ($\lambda$) is formulated as:
+$$\lambda = \text{base\_demand} \times e^{\alpha \times p} \times \left(1 + \beta \times (D - d)\right)$$
+
+Where:
+- $p$: Chosen price.
+- $\alpha$: Price sensitivity parameter (`-0.0003`).
+- $\beta$: Urgency factor slope (`0.05`).
+- $D$: Maximum selling horizon days (`max_days`).
+- $d$: Current days remaining (`days_left`).
+- $D - d$: Days passed since start of the selling season.
+
+The actual demand is sampled from a **Poisson distribution**:
+$$\text{demand} \sim \text{Poisson}(\lambda)$$
+
+The next state transitions:
+$$\text{inventory}_{t+1} = \text{inventory}_t - \min(\text{demand}, \text{inventory}_t)$$
+$$\text{days\_left}_{t+1} = \text{days\_left}_t - 1$$
+
+### 4. Reward Function ($R$)
+The reward is the revenue collected during the time step:
+$$R_t = \text{price} \times \min(\text{demand}, \text{inventory}_t)$$
+
+### 5. Termination Criteria
+An episode terminates when:
+- Remaining inventory reaches `0` (sold out).
+- Remaining days reach `0` (flight departs).
+
+---
+
 ## 📂 Repository Structure
+
+The current repository structure on the `Manoj` branch is shown below:
 
 ```
 project/
-|
-├── agents/
-|   ├── fixed_price_agent.py        ← from Member 1
-|   ├── time_based_agent.py         ← from Member 2
-|   ├── inventory_based_agent.py    ← from Member 3
-|   ├── qlearning_agent.py          ← from Member 2
-|   └── dqn_agent.py                ← from Member 3
-|
+│
 ├── environment/
-|   └── airline_pricing_env.py      ← from Member 1
-|
-├── models/
-|   └── dqn_weights.pth             ← trained weights from Member 3
-|
-├── dashboard/
-|   └── app.py                      ← Member 4's Streamlit app
-└── README.md
+│   └── airline_pricing_env.py      ← Gymnasium environment implementation
+│
+├── scripts/
+│   └── validate_env.py             ← CLI script to validate environment using random actions
+│
+├── tests/
+│   └── test_env.py                 ← Unit test suite for the environment
+│
+├── docs/
+│   └── environment_guide.md        ← Technical guide for the environment
+│
+├── Documents/                      ← Internship reference roadmaps and details
+│   ├── Infotact_Internship_Roadmap.md
+│   ├── Infotact_Project_Execution_Roadmap.md
+│   └── PROJECT_DETAILS.md
+│
+├── .gitignore                      ← Excludes virtual env, pycache, and build files
+├── requirements.txt                ← Python package dependencies
+├── LICENSE                         ← MIT License
+└── README.md                       ← This file
 ```
+
+> [!NOTE]
+> As implementation progresses over the 4-week roadmap, additional modules like `agents/` (for Fixed, Linear Discount, Q-learning, and DQN agents), `models/` (for trained policy weights), and `dashboard/` (for the Streamlit application) will be added.
+
+---
+
+## ⚙️ Configuration & Parameterization
+
+The environment class is fully parameterized to allow rapid experimentation:
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `max_inventory` | `int` | `50` | Initial inventory available to sell. |
+| `max_days` | `int` | `30` | Horizon duration in days/steps. |
+| `prices` | `list` | `[2000, 3000, 4000, 5000, 6000]` | Available price menu options. |
+| `base_demand` | `float` | `10.0` | Base customer volume rate. |
+| `price_sensitivity` | `float` | `-0.0003` | Exponential price sensitivity coefficient. |
+| `urgency_factor_slope` | `float` | `0.05` | Slope factor for demand growth over time. |
 
 ---
 
@@ -84,25 +161,27 @@ source venv/bin/activate  # On Windows: .\venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 3. Training the DQN Agent
-Run the command-line training script to train the DQN agent:
+### 3. Running Environment Validation
+You can run the environment validation script, which simulates a 30-day selling season by picking random actions at each step:
 ```bash
-python scripts/train_dqn.py --episodes 10000 --save-dir models/
+python -m scripts.validate_env
 ```
+This script validates that the environment step/reset loops are functioning properly, and outputs step-by-step logs of pricing choices, stochastic demand, seats sold, and revenue generated.
 
-### 4. Evaluating All Agents
-Run the evaluation suite to compare the DQN model against all baselines:
+### 4. Running Unit Tests
+To execute the unit test suite and verify environment logic, boundary conditions, and reproducibility:
 ```bash
-python scripts/evaluate_agents.py --episodes 1000
+python -m pytest
 ```
 
 ---
 
 ## 📄 Documentation Reference
 For additional program details, please refer to:
-- [PROJECT_DETAILS.md](Documents/PROJECT_DETAILS.md) — Main internship guidelines and requirements.
-- [Infotact_Internship_Roadmap.md](Documents/Infotact_Internship_Roadmap.md) — Sprint-by-sprint implementation details for weeks 1-4.
-- [Infotact_Project_Execution_Roadmap.md](Documents/Infotact_Project_Execution_Roadmap.md) — Team role definitions and weekly milestones.
+- [docs/environment_guide.md](docs/environment_guide.md) — Technical environment details and mathematical proofs.
+- [Documents/PROJECT_DETAILS.md](Documents/PROJECT_DETAILS.md) — Main internship guidelines and requirements.
+- [Documents/Infotact_Internship_Roadmap.md](Documents/Infotact_Internship_Roadmap.md) — Sprint-by-sprint implementation details for weeks 1-4.
+- [Documents/Infotact_Project_Execution_Roadmap.md](Documents/Infotact_Project_Execution_Roadmap.md) — Team role definitions and weekly milestones.
 
 ---
 *For questions or support, reach out to `support@infotact.in`*
