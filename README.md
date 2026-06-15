@@ -25,12 +25,12 @@ The diagram below outlines the interaction between the pricing agent and the sim
 
 ```mermaid
 graph TD
-    subgraph Market Environment (Gym Env)
+    subgraph "Market Environment (Gym Env)"
         State["State: [inventory, days_left]"]
         Demand["Stochastic Demand Function"]
     end
     
-    subgraph RL Agent
+    subgraph "RL Agent"
         Policy["DQN / Q-Table Policy"]
         Action["Select Price Level Action"]
     end
@@ -52,9 +52,9 @@ The dynamic pricing problem is modeled as a finite-horizon, discrete-action Mark
 
 ### 1. State Space ($S$)
 The state is represented as a 2D continuous vector:
-$$s = [\text{inventory}, \text{days\_left}]$$
-- **`inventory`**: Number of remaining tickets/seats (bounds: $[0, \text{max\_inventory}]$).
-- **`days_left`**: Days left until the flight departure (bounds: $[0, \text{max\_days}]$).
+$$s = [\text{inventory}, \text{days left}]$$
+- **`inventory`**: Number of remaining tickets/seats (bounds: $[0, \text{max inventory}]$).
+- **`days_left`**: Days left until the flight departure (bounds: $[0, \text{max days}]$).
 
 ### 2. Action Space ($A$)
 The action space is a discrete menu of 20 price levels:
@@ -75,13 +75,13 @@ $$p(a) = 500 + (a \times 500) \quad \text{for } a \in [0, 19]$$
 At each step, the environment computes customer demand using a **multi-factor demand model** that simulates realistic booking behavior. The next state transitions as:
 
 $$\text{inventory}_{t+1} = \text{inventory}_t - \min(\text{demand}, \text{inventory}_t)$$
-$$\text{days\_left}_{t+1} = \text{days\_left}_t - 1$$
+$$\text{days left}_{t+1} = \text{days left}_t - 1$$
 
 The demand model combines **6 distinct features** that interact multiplicatively (except bursts which are additive). Below is the complete computation pipeline:
 
 ---
 
-#### 3a. Demand Regime Multiplier
+#### 3.1. Demand Regime Multiplier
 
 The market operates under one of three unobservable regimes that scale overall demand:
 
@@ -95,7 +95,7 @@ The regime is randomly selected at episode start. Each step, there is a 5% chanc
 
 ---
 
-#### 3b. Customer Segments (Price Elasticity)
+#### 3.2. Customer Segments (Price Elasticity)
 
 Two distinct customer types respond differently to price:
 
@@ -106,19 +106,19 @@ Two distinct customer types respond differently to price:
 
 Each segment computes its own demand contribution:
 
-$$\text{segment\_demand} = \text{base\_demand} \times \text{weight} \times \text{regime\_mult} \times e^{\alpha_{\text{segment}} \times p}$$
+$$\text{segment demand} = \text{base demand} \times \text{weight} \times \text{regime mult} \times e^{\alpha_{\text{segment}} \times p}$$
 
 The contributions are summed to form the total expected demand:
 
-$$\text{expected}_{\text{segments}} = \sum_{\text{segments}} \text{segment\_demand}$$
+$$\text{expected}_{\text{segments}} = \sum_{\text{segments}} \text{segment demand}$$
 
 ---
 
-#### 3c. S-Curve Urgency
+#### 3.3. S-Curve Urgency
 
 Rather than a linear urgency ramp, demand follows a **sigmoid (S-curve)** over the normalized time horizon:
 
-$$t = \frac{\text{days\_passed}}{\text{max\_days}} \quad\quad
+$$t = \frac{\text{days passed}}{\text{max days}} \quad\quad
 \text{urgency} = 1.0 + \frac{\text{amplitude}}{1 + e^{-\text{steepness} \times (t - \text{midpoint})}}$$
 
 This produces three phases:
@@ -130,11 +130,11 @@ Default parameters: `amplitude=1.0`, `steepness=8.0`, `midpoint=0.5`.
 
 ---
 
-#### 3d. Inventory Scarcity (FOMO)
+#### 3.4. Inventory Scarcity (FOMO)
 
 When few seats remain, demand receives an extra boost simulating customer panic:
 
-$$\text{scarcity} = 1.0 + \text{scarcity\_sensitivity} \times \left(1 - \frac{\text{inventory}}{\text{max\_inventory}}\right)$$
+$$\text{scarcity} = 1.0 + \text{scarcity sensitivity} \times \left(1 - \frac{\text{inventory}}{\text{max inventory}}\right)$$
 
 | Inventory Remaining | Scarcity Factor |
 |:---:|:---:|
@@ -147,7 +147,7 @@ Default `scarcity_sensitivity=0.3`.
 
 ---
 
-#### 3e. Market Noise
+#### 3.5. Market Noise
 
 A **log-normal shock** is applied multiplicatively each step to simulate unpredictable market fluctuations:
 
@@ -158,7 +158,7 @@ Where $\sigma = 0.1$ by default. This produces random daily variations of roughl
 
 ---
 
-#### 3f. Booking Bursts (Group Bookings)
+#### 3.6. Booking Bursts (Group Bookings)
 
 With a 5% probability per step, a **group booking** event occurs, adding 5–15 price-insensitive passengers to the expected demand:
 
@@ -169,7 +169,7 @@ Bursts are tracked in the info dict as `info["burst"]` and are independent of th
 
 ---
 
-#### 3g. Final Demand Sampling
+#### 3.7. Final Demand Sampling
 
 The total expected demand after all factors is sampled from a **Poisson distribution** and clipped to remaining inventory:
 
@@ -179,12 +179,12 @@ $$\text{demand} = \min\bigl(\text{Poisson}(\text{expected}_{\text{total}}),\; \t
 
 ---
 
-#### 3h. Complete Demand Formula
+#### 3.8. Complete Demand Formula
 
 Putting it all together:
 
 $$\begin{aligned}
-\lambda &= \text{base\_demand} \times \text{regime\_mult} \times \text{urgency}(t) \times \text{scarcity}(\text{inv}) \times \text{noise} \\
+\lambda &= \text{base demand} \times \text{regime mult} \times \text{urgency}(t) \times \text{scarcity}(\text{inv}) \times \text{noise} \\
 &\quad \times \bigl[ w_{\text{leisure}} \, e^{\alpha_{\text{leisure}} p} + w_{\text{business}} \, e^{\alpha_{\text{business}} p} \bigr] + \text{burst}
 \end{aligned}$$
 
