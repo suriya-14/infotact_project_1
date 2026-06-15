@@ -57,35 +57,141 @@ $$s = [\text{inventory}, \text{days\_left}]$$
 - **`days_left`**: Days left until the flight departure (bounds: $[0, \text{max\_days}]$).
 
 ### 2. Action Space ($A$)
-The action space is a discrete menu of price levels:
-$$A \in \{0, 1, 2, 3, 4\}$$
-Each action maps to a specific price:
-- `0` $\rightarrow$ **₹2,000**
-- `1` $\rightarrow$ **₹3,000**
-- `2` $\rightarrow$ **₹4,000**
-- `3` $\rightarrow$ **₹5,000**
-- `4` $\rightarrow$ **₹6,000**
+The action space is a discrete menu of 20 price levels:
+$$A \in \{0, 1, 2, \dots, 19\}$$
+Each action maps to a price in ₹500 increments:
+$$p(a) = 500 + (a \times 500) \quad \text{for } a \in [0, 19]$$
+
+| Action | Price | Action | Price | Action | Price | Action | Price |
+|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| 0 | ₹500 | 5 | ₹3,000 | 10 | ₹5,500 | 15 | ₹8,000 |
+| 1 | ₹1,000 | 6 | ₹3,500 | 11 | ₹6,000 | 16 | ₹8,500 |
+| 2 | ₹1,500 | 7 | ₹4,000 | 12 | ₹6,500 | 17 | ₹9,000 |
+| 3 | ₹2,000 | 8 | ₹4,500 | 13 | ₹7,000 | 18 | ₹9,500 |
+| 4 | ₹2,500 | 9 | ₹5,000 | 14 | ₹7,500 | 19 | ₹10,000 |
 
 ### 3. Transition Dynamics & Stochastic Demand
-At each step, the environment computes customer demand based on the chosen price, remaining days, and the urgency as the deadline approaches.
 
-The **expected demand** ($\lambda$) is formulated as:
-$$\lambda = \text{base\_demand} \times e^{\alpha \times p} \times \left(1 + \beta \times (D - d)\right)$$
+At each step, the environment computes customer demand using a **multi-factor demand model** that simulates realistic booking behavior. The next state transitions as:
 
-Where:
-- $p$: Chosen price.
-- $\alpha$: Price sensitivity parameter (`-0.0003`).
-- $\beta$: Urgency factor slope (`0.05`).
-- $D$: Maximum selling horizon days (`max_days`).
-- $d$: Current days remaining (`days_left`).
-- $D - d$: Days passed since start of the selling season.
-
-The actual demand is sampled from a **Poisson distribution**:
-$$\text{demand} \sim \text{Poisson}(\lambda)$$
-
-The next state transitions:
 $$\text{inventory}_{t+1} = \text{inventory}_t - \min(\text{demand}, \text{inventory}_t)$$
 $$\text{days\_left}_{t+1} = \text{days\_left}_t - 1$$
+
+The demand model combines **6 distinct features** that interact multiplicatively (except bursts which are additive). Below is the complete computation pipeline:
+
+---
+
+#### 3a. Demand Regime Multiplier
+
+The market operates under one of three unobservable regimes that scale overall demand:
+
+| Regime | Multiplier | Description |
+|:---|:---:|:---|
+| `peak` | 1.5× | High season — strong demand |
+| `normal` | 1.0× | Baseline demand |
+| `off_peak` | 0.6× | Low season — weak demand |
+
+The regime is randomly selected at episode start. Each step, there is a 5% chance of switching to a _different_ regime (never stays on the same one). Since the regime is **not included in the state**, the agent must infer it from the reward signal.
+
+---
+
+#### 3b. Customer Segments (Price Elasticity)
+
+Two distinct customer types respond differently to price:
+
+| Segment | Weight | Price Sensitivity | Behavior |
+|:---|:---:|:---:|:---|
+| **Leisure** | 70% | −0.0004 | Price-sensitive — demand drops sharply as price rises |
+| **Business** | 30% | −0.0001 | Price-insensitive — willing to pay high fares |
+
+Each segment computes its own demand contribution:
+
+$$\text{segment\_demand} = \text{base\_demand} \times \text{weight} \times \text{regime\_mult} \times e^{\alpha_{\text{segment}} \times p}$$
+
+The contributions are summed to form the total expected demand:
+
+$$\text{expected}_{\text{segments}} = \sum_{\text{segments}} \text{segment\_demand}$$
+
+---
+
+#### 3c. S-Curve Urgency
+
+Rather than a linear urgency ramp, demand follows a **sigmoid (S-curve)** over the normalized time horizon:
+
+$$t = \frac{\text{days\_passed}}{\text{max\_days}} \quad\quad
+\text{urgency} = 1.0 + \frac{\text{amplitude}}{1 + e^{-\text{steepness} \times (t - \text{midpoint})}}$$
+
+This produces three phases:
+1. **Early days** ($t < 0.3$): urgency is low and flat — customers are not in a hurry.
+2. **Mid-horizon** ($t \approx 0.5$): urgency rises rapidly as departure approaches.
+3. **Near departure** ($t > 0.7$): urgency plateaus — the most anxious customers have already booked.
+
+Default parameters: `amplitude=1.0`, `steepness=8.0`, `midpoint=0.5`.
+
+---
+
+#### 3d. Inventory Scarcity (FOMO)
+
+When few seats remain, demand receives an extra boost simulating customer panic:
+
+$$\text{scarcity} = 1.0 + \text{scarcity\_sensitivity} \times \left(1 - \frac{\text{inventory}}{\text{max\_inventory}}\right)$$
+
+| Inventory Remaining | Scarcity Factor |
+|:---:|:---:|
+| 50 / 50 (full) | 1.00× (no effect) |
+| 25 / 50 | 1.15× |
+| 10 / 50 | 1.24× |
+| 1 / 50 | 1.29× |
+
+Default `scarcity_sensitivity=0.3`.
+
+---
+
+#### 3e. Market Noise
+
+A **log-normal shock** is applied multiplicatively each step to simulate unpredictable market fluctuations:
+
+$$\text{noise} = e^{\mathcal{N}(0,\,\sigma^2)} \quad\quad
+\text{expected} = \text{expected} \times \text{noise}$$
+
+Where $\sigma = 0.1$ by default. This produces random daily variations of roughly ±10%.
+
+---
+
+#### 3f. Booking Bursts (Group Bookings)
+
+With a 5% probability per step, a **group booking** event occurs, adding 5–15 price-insensitive passengers to the expected demand:
+
+$$\text{burst} \sim \text{Uniform}\{5, 6, \dots, 15\} \quad\quad
+\text{expected} = \text{expected} + \text{burst}$$
+
+Bursts are tracked in the info dict as `info["burst"]` and are independent of the chosen price.
+
+---
+
+#### 3g. Final Demand Sampling
+
+The total expected demand after all factors is sampled from a **Poisson distribution** and clipped to remaining inventory:
+
+$$\text{expected}_{\text{total}} = \text{expected}_{\text{segments}} \times \text{urgency} \times \text{scarcity} \times \text{noise} + \text{burst}$$
+
+$$\text{demand} = \min\bigl(\text{Poisson}(\text{expected}_{\text{total}}),\; \text{inventory}\bigr)$$
+
+---
+
+#### 3h. Complete Demand Formula
+
+Putting it all together:
+
+$$\begin{aligned}
+\lambda &= \text{base\_demand} \times \text{regime\_mult} \times \text{urgency}(t) \times \text{scarcity}(\text{inv}) \times \text{noise} \\
+&\quad \times \bigl[ w_{\text{leisure}} \, e^{\alpha_{\text{leisure}} p} + w_{\text{business}} \, e^{\alpha_{\text{business}} p} \bigr] + \text{burst}
+\end{aligned}$$
+
+$$
+\text{bookings} \sim \text{Poisson}(\lambda) \quad\quad
+\text{sold} = \min(\text{bookings}, \text{inventory})
+$$
 
 ### 4. Reward Function ($R$)
 The reward is the revenue collected during the time step:
@@ -95,6 +201,39 @@ $$R_t = \text{price} \times \min(\text{demand}, \text{inventory}_t)$$
 An episode terminates when:
 - Remaining inventory reaches `0` (sold out).
 - Remaining days reach `0` (flight departs).
+
+Maximum episode length = `max_days` (default 30) steps.
+
+---
+
+### 6. Info Dict
+
+Each call to `step()` returns an `info` dictionary with detailed diagnostics:
+
+| Key | Type | Description |
+|:---|:---:|:---|
+| `total_revenue` | `float` | Cumulative revenue earned so far in the episode |
+| `sold` | `int` | Seats sold in this step |
+| `demand` | `int` | Raw demand before inventory clip |
+| `price` | `int` | Price chosen at this step |
+| `regime` | `str` | Current demand regime (`peak` / `normal` / `off_peak`) |
+| `burst` | `int` | Size of group booking burst (0 if none) |
+
+---
+
+### 7. Rendering
+
+The environment supports two render modes:
+
+- **`"human"`**: prints a status line to stdout each step
+- **`"ansi"`**: returns the status line as a string (for logging)
+
+Example output:
+```
+Day  2/30 | Inventory: 44/50 | Regime:     peak | Revenue: 18000.00
+```
+
+The line shows: current day, remaining/max inventory, active demand regime, and cumulative revenue.
 
 ---
 
@@ -139,12 +278,29 @@ The environment class is fully parameterized to allow rapid experimentation:
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `max_inventory` | `int` | `50` | Initial inventory available to sell. |
-| `max_days` | `int` | `30` | Horizon duration in days/steps. |
-| `prices` | `list` | `[2000, 3000, 4000, 5000, 6000]` | Available price menu options. |
-| `base_demand` | `float` | `10.0` | Base customer volume rate. |
-| `price_sensitivity` | `float` | `-0.0003` | Exponential price sensitivity coefficient. |
-| `urgency_factor_slope` | `float` | `0.05` | Slope factor for demand growth over time. |
+| `max_inventory` | `int` | `50` | Initial inventory available to sell |
+| `max_days` | `int` | `30` | Horizon duration in days/steps |
+| `prices` | `list` | `range(500, 10001, 500)` | Price menu (20 levels, ₹500–₹10,000) |
+| `base_demand` | `float` | `10.0` | Base customer arrival rate per day |
+| `customer_segments` | `list[dict]` | _see below_ | Per-segment weights and price sensitivities |
+| `urgency_amplitude` | `float` | `1.0` | S-curve urgency max amplitude |
+| `urgency_steepness` | `float` | `8.0` | S-curve steepness (higher = sharper transition) |
+| `urgency_midpoint` | `float` | `0.5` | S-curve midpoint (normalized time) |
+| `scarcity_sensitivity` | `float` | `0.3` | How much low inventory boosts demand |
+| `demand_regimes` | `dict` | `{peak: 1.5, normal: 1.0, off_peak: 0.6}` | Regime multipliers |
+| `regime_change_prob` | `float` | `0.05` | Probability of regime switch each step |
+| `market_noise_scale` | `float` | `0.1` | Log-normal noise std dev (0 = disabled) |
+| `burst_probability` | `float` | `0.05` | Probability of a group booking event per step |
+| `burst_min_size` | `int` | `5` | Minimum size of a booking burst |
+| `burst_max_size` | `int` | `15` | Maximum size of a booking burst |
+
+Default customer segments:
+```python
+[
+    {"name": "leisure",  "weight": 0.7, "price_sensitivity": -0.0004},
+    {"name": "business", "weight": 0.3, "price_sensitivity": -0.0001},
+]
+```
 
 ---
 
