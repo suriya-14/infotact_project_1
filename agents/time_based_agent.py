@@ -64,17 +64,31 @@ class TimedBasedAgent:
             price = max_price - ((max_price - min_price) / max_days)
                                 * days_elapsed
 
+        where:
+            days_elapsed = max_days - days_remaining
+
+        Example (max_price=300, min_price=100, max_days=30):
+            days_remaining = 30 -> days_elapsed = 0  -> price = 300
+            days_remaining = 15 -> days_elapsed = 15 -> price = 200
+            days_remaining = 1  -> days_elapsed = 29 -> price ~= 106.7
+            days_remaining = 0  -> days_elapsed = 30 -> price = 100
+
         Args:
             days_remaining (int): How many days left until departure.
 
         Returns:
-            float: The price to charge today.
+            float: The price to charge today, rounded to 2 decimals.
         """
-        # TODO: Implement the linear decay formula here
-        # days_elapsed = self.max_days - days_remaining
-        # price = self.max_price - (price_range / self.max_days) * days_elapsed
-        # return round(price, 2)
-        pass
+        # Clip days_remaining to valid range [0, max_days] to avoid
+        # nonsensical prices if the env ever passes an out-of-range value
+        days_remaining = max(0, min(days_remaining, self.max_days))
+
+        days_elapsed = self.max_days - days_remaining
+        price_range  = self.max_price - self.min_price
+
+        price = self.max_price - (price_range / self.max_days) * days_elapsed
+
+        return round(price, 2)
 
     def evaluate(self, env, num_episodes=1000):
         """
@@ -86,7 +100,7 @@ class TimedBasedAgent:
             num_episodes: Number of booking seasons to simulate
 
         Returns:
-            dict: Summary stats — mean, std, min, max revenue
+            dict: Summary stats - mean, std, min, max revenue
         """
         # TODO: Implement evaluation loop once env is available
         # revenues = []
@@ -113,22 +127,23 @@ class TimedBasedAgent:
 
     def plot_price_trajectory(self):
         """
-        Plot how the price changes day-by-day over a 30-day booking window.
+        Plot how the price changes day-by-day over the booking window.
         Useful for visualizing the linear decay behavior.
-
-        TODO: Implement using matplotlib once select_action() is done.
         """
-        # import matplotlib.pyplot as plt
-        # days  = list(range(self.max_days, 0, -1))
-        # prices = [self.select_action(d) for d in days]
-        # plt.plot(days, prices)
-        # plt.xlabel("Days Remaining")
-        # plt.ylabel("Price ($)")
-        # plt.title("Time-Based Agent: Price Trajectory")
-        # plt.gca().invert_xaxis()
-        # plt.grid(True)
-        # plt.show()
-        pass
+        import matplotlib.pyplot as plt
+
+        days   = list(range(self.max_days, -1, -1))   # e.g., 30, 29, ..., 0
+        prices = [self.select_action(d) for d in days]
+
+        plt.figure(figsize=(8, 5))
+        plt.plot(days, prices, marker='o')
+        plt.xlabel("Days Remaining Until Departure")
+        plt.ylabel("Price ($)")
+        plt.title("Time-Based Agent: Price Trajectory")
+        plt.gca().invert_xaxis()   # so it reads left (far out) -> right (departure)
+        plt.grid(True)
+        plt.tight_layout()
+        plt.show()
 
 
 # -----------------------------------------------------------------------------
@@ -142,10 +157,11 @@ if __name__ == "__main__":
     print(f"  Min Price : ${agent.min_price}")
     print(f"  Window    : {agent.max_days} days")
     print()
-    print("Sample price decisions (days_remaining → price):")
-    print("  [Will work after select_action() is implemented]")
+    print("Sample price decisions (days_remaining -> price):")
 
-    # TODO: Uncomment after implementing select_action()
-    # for days in [30, 25, 20, 15, 10, 5, 1]:
-    #     price = agent.select_action(days)
-    #     print(f"  {days:2d} days left → ${price}")
+    for days in [30, 25, 20, 15, 10, 5, 1, 0]:
+        price = agent.select_action(days)
+        print(f"  {days:2d} days left -> ${price}")
+
+    # Uncomment to visualize the full price trajectory
+    # agent.plot_price_trajectory()
