@@ -11,17 +11,19 @@ class AirlinePricingEnv(gym.Env):
         [remaining_inventory, days_until_departure]
 
     Action space:
-        Discrete price level index mapping to a pricing menu (e.g., [2000, 3000, 4000, 5000, 6000])
+        Discrete price level index mapping to a pricing menu
+        (e.g., [500, 1000, …, 10000] in ₹500 increments)
 
     Reward:
         Revenue generated in the current step (price * items sold)
     """
 
     metadata = {"render_modes": ["human", "ansi"]}
-    DEFAULT_PRICES = [2000, 3000, 4000, 5000, 6000]
+    DEFAULT_PRICES = list(range(500, 10001, 500))
     __slots__ = (
         "max_inventory", "max_days", "prices", "base_demand",
-        "price_sensitivity", "urgency_factor_slope", "render_mode",
+        "price_sensitivity", "urgency_factor_slope",
+        "scarcity_sensitivity", "render_mode",
         "action_space", "observation_space", "inventory", "days_left",
         "total_revenue", "_obs_buffer",
     )
@@ -34,6 +36,7 @@ class AirlinePricingEnv(gym.Env):
         base_demand: float = 10.0,
         price_sensitivity: float = -0.0003,
         urgency_factor_slope: float = 0.05,
+        scarcity_sensitivity: float = 0.3,
         render_mode: str | None = None,
     ) -> None:
         super().__init__()
@@ -48,6 +51,7 @@ class AirlinePricingEnv(gym.Env):
         self.base_demand = base_demand
         self.price_sensitivity = price_sensitivity
         self.urgency_factor_slope = urgency_factor_slope
+        self.scarcity_sensitivity = scarcity_sensitivity
         self.render_mode = render_mode
 
         self.action_space = gym.spaces.Discrete(len(self.prices))
@@ -75,11 +79,14 @@ class AirlinePricingEnv(gym.Env):
     def get_demand(self, price: float) -> int:
         days_passed = self.max_days - self.days_left
         urgency_factor = 1.0 + (self.urgency_factor_slope * days_passed)
+        inventory_ratio = self.inventory / self.max_inventory
+        scarcity_factor = 1.0 + self.scarcity_sensitivity * (1.0 - inventory_ratio)
 
         expected_bookings = (
             self.base_demand
             * np.exp(self.price_sensitivity * price)
             * urgency_factor
+            * scarcity_factor
         )
         return self.np_random.poisson(expected_bookings)
 
