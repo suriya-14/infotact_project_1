@@ -27,7 +27,7 @@ def main():
 
     while not (terminated or truncated):
         step_count += 1
-        # Sample a random action (0 to 4)
+        # Sample a random action (0 to 19)
         action = env.action_space.sample()
         price = env.prices[action]
 

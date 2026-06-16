@@ -9,8 +9,8 @@ def test_env_initialization():
     env = AirlinePricingEnv()
     assert env.max_inventory == 50
     assert env.max_days == 30
-    assert len(env.prices) == 5
-    assert env.action_space.n == 5
+    assert len(env.prices) == 20
+    assert env.action_space.n == 20
     assert isinstance(env.observation_space, gym.spaces.Box)
     assert np.all(env.observation_space.low == np.array([0, 0]))
     assert np.all(env.observation_space.high == np.array([50, 30]))
@@ -19,13 +19,24 @@ def test_env_initialization():
 def test_env_parameterization():
     """Test that the environment handles customized parameters correctly."""
     custom_prices = [1000, 1500, 2000]
+    custom_segments = [
+        {"name": "test_segment", "weight": 1.0, "price_sensitivity": -0.001}
+    ]
     env = AirlinePricingEnv(
         max_inventory=10,
         max_days=5,
         prices=custom_prices,
         base_demand=5.0,
-        price_sensitivity=-0.001,
-        urgency_factor_slope=0.1,
+        customer_segments=custom_segments,
+        urgency_amplitude=1.5,
+        urgency_steepness=6.0,
+        urgency_midpoint=0.4,
+        scarcity_sensitivity=0.2,
+        regime_change_prob=0.08,
+        market_noise_scale=0.05,
+        burst_probability=0.03,
+        burst_min_size=2,
+        burst_max_size=6,
     )
     assert env.max_inventory == 10
     assert env.max_days == 5
@@ -33,8 +44,16 @@ def test_env_parameterization():
     assert env.action_space.n == 3
     assert np.all(env.observation_space.high == np.array([10, 5]))
     assert env.base_demand == 5.0
-    assert env.price_sensitivity == -0.001
-    assert env.urgency_factor_slope == 0.1
+    assert env.customer_segments == custom_segments
+    assert env.urgency_amplitude == 1.5
+    assert env.urgency_steepness == 6.0
+    assert env.urgency_midpoint == 0.4
+    assert env.scarcity_sensitivity == 0.2
+    assert env.regime_change_prob == 0.08
+    assert env.market_noise_scale == 0.05
+    assert env.burst_probability == 0.03
+    assert env.burst_min_size == 2
+    assert env.burst_max_size == 6
 
 
 def test_env_reset():
@@ -127,6 +146,6 @@ def test_invalid_action():
     env = AirlinePricingEnv()
     env.reset()
     with pytest.raises(ValueError):
-        env.step(5)  # Action space is size 5 (0 to 4)
+        env.step(20)  # Action space is size 20 (0 to 19)
     with pytest.raises(ValueError):
         env.step(-1)
