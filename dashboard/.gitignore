@@ -1,3 +1,4 @@
 git add .
 git commit -m "Added gitignore and improved project structure management"
 git push origin Mani
+git commit -m "Added sidebar, input fields and improved Streamlit UI"
