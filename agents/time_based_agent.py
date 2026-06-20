@@ -1,167 +1,150 @@
 # =============================================================================
 # time_based_agent.py
 # Author      : Member 2
-# Description : A rule-based heuristic baseline agent that adjusts price
-#               based on how many days are left until departure.
-#               This agent does NOT learn — it follows a fixed discount rule.
-#               Purpose: Act as a performance baseline for Q-Learning & DQN.
+# Description : Rule-based heuristic baseline agent.
+#               Price decays linearly as departure approaches.
+#               Does NOT learn — acts as a baseline for Q-Learning & DQN.
 # =============================================================================
 
-# -----------------------------------------------------------------------------
-# HOW THIS AGENT WORKS (Logic Plan)
-# -----------------------------------------------------------------------------
-# - At 30 days left  → charge MAX price (e.g., $300) — early bookers pay full
-# - At 15 days left  → charge MID price (e.g., $200) — moderate discount
-# - At  5 days left  → charge LOW price (e.g., $130) — urgency discount
-# - At  1 day  left  → charge MIN price (e.g., $100) — clear remaining seats
-#
-# Formula:
-#   price = max_price - ((max_price - min_price) / max_days) * days_elapsed
-#
-# This is a LINEAR decay from max_price → min_price over the booking window.
-# -----------------------------------------------------------------------------
-
-# TODO: Uncomment this import once Member 1 completes airline_pricing_env.py
-# from environment.airline_pricing_env import AirlinePricingEnv
-
 import numpy as np
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from environment.airline_pricing_env import AirlinePricingEnv
 
 
 class TimedBasedAgent:
     """
     A heuristic pricing agent that linearly decreases price over time.
 
-    The core idea: the closer to departure, the lower the price —
-    to ensure remaining inventory is cleared before the flight departs.
+    The closer to departure → the lower the price index chosen,
+    to ensure remaining inventory clears before the flight departs.
 
     Attributes:
-        max_price  (float): Highest price charged (far from departure)
-        min_price  (float): Lowest price charged (day of / day before departure)
-        max_days   (int)  : Total days in the booking window (e.g., 30)
+        prices        (list): Full price menu from the environment
+        max_days      (int) : Total booking window in days (30)
+        high_idx      (int) : Price index to start with (far from departure)
+        low_idx       (int) : Price index to end with (near departure)
     """
 
-    def __init__(self, max_price=300, min_price=100, max_days=30):
+    def __init__(self, max_days=30, high_idx=15, low_idx=2):
         """
-        Initialize the Time-Based Agent with pricing bounds.
-
         Args:
-            max_price (float): Starting price at the beginning of the window.
-            min_price (float): Floor price as departure approaches.
-            max_days  (int)  : Total length of the booking window in days.
+            max_days (int): Total days in the booking window
+            high_idx (int): Starting price index (e.g., 15 = Rs 8000)
+            low_idx  (int): Ending price index   (e.g.,  2 = Rs 1500)
         """
-        self.max_price = max_price
-        self.min_price = min_price
-        self.max_days  = max_days
-
-        # TODO: Add additional pricing tiers if needed
-        # e.g., surge pricing on weekends, holiday multipliers
+        # Full price menu: [500, 1000, 1500, ..., 10000]
+        self.prices   = list(range(500, 10001, 500))
+        self.max_days = max_days
+        self.high_idx = high_idx   # index used far from departure
+        self.low_idx  = low_idx    # index used near departure
 
     def select_action(self, days_remaining):
         """
-        Select a price based purely on how many days are left.
+        Select a price INDEX based on how many days are left.
 
-        Formula:
-            price = max_price - ((max_price - min_price) / max_days)
-                                * days_elapsed
-
-        where:
-            days_elapsed = max_days - days_remaining
-
-        Example (max_price=300, min_price=100, max_days=30):
-            days_remaining = 30 -> days_elapsed = 0  -> price = 300
-            days_remaining = 15 -> days_elapsed = 15 -> price = 200
-            days_remaining = 1  -> days_elapsed = 29 -> price ~= 106.7
-            days_remaining = 0  -> days_elapsed = 30 -> price = 100
+        Linearly maps days_remaining → price index:
+            days_remaining = 30  →  high_idx (expensive)
+            days_remaining =  0  →  low_idx  (cheap)
 
         Args:
-            days_remaining (int): How many days left until departure.
+            days_remaining (int): Days left until departure
 
         Returns:
-            float: The price to charge today, rounded to 2 decimals.
+            int: Price index into the environment's price list
         """
-        # Clip days_remaining to valid range [0, max_days] to avoid
-        # nonsensical prices if the env ever passes an out-of-range value
         days_remaining = max(0, min(days_remaining, self.max_days))
 
-        days_elapsed = self.max_days - days_remaining
-        price_range  = self.max_price - self.min_price
+        # Linear interpolation from high_idx to low_idx
+        ratio      = days_remaining / self.max_days
+        action_idx = int(self.low_idx + ratio * (self.high_idx - self.low_idx))
+        action_idx = max(0, min(action_idx, len(self.prices) - 1))
 
-        price = self.max_price - (price_range / self.max_days) * days_elapsed
-
-        return round(price, 2)
+        return action_idx
 
     def evaluate(self, env, num_episodes=1000):
         """
-        Run the agent in the environment for multiple episodes and
-        collect total revenue statistics.
+        Run agent across multiple episodes and collect revenue stats.
 
         Args:
-            env         : The AirlinePricingEnv Gym environment (Member 1)
-            num_episodes: Number of booking seasons to simulate
+            env          : AirlinePricingEnv instance
+            num_episodes : Number of booking seasons to simulate
 
         Returns:
-            dict: Summary stats - mean, std, min, max revenue
+            dict: mean, std, min, max revenue
         """
-        # TODO: Implement evaluation loop once env is available
-        # revenues = []
-        # for episode in range(num_episodes):
-        #     state = env.reset()
-        #     done  = False
-        #     total_revenue = 0
-        #
-        #     while not done:
-        #         days_remaining = state[1]           # index 1 = days_until_departure
-        #         price          = self.select_action(days_remaining)
-        #         state, reward, done, info = env.step(price)
-        #         total_revenue += reward
-        #
-        #     revenues.append(total_revenue)
-        #
-        # return {
-        #     "mean_revenue" : np.mean(revenues),
-        #     "std_revenue"  : np.std(revenues),
-        #     "min_revenue"  : np.min(revenues),
-        #     "max_revenue"  : np.max(revenues),
-        # }
-        pass
+        revenues = []
+
+        for episode in range(num_episodes):
+            obs, _        = env.reset()
+            done          = False
+            total_revenue = 0.0
+
+            while not done:
+                days_remaining          = int(obs[1])
+                action                  = self.select_action(days_remaining)
+                obs, reward, terminated, truncated, info = env.step(action)
+                done                    = terminated or truncated
+                total_revenue          += reward
+
+            revenues.append(total_revenue)
+
+            if (episode + 1) % 100 == 0:
+                print(f"  Episode {episode+1}/{num_episodes} | "
+                      f"Avg Revenue: Rs {np.mean(revenues):.2f}")
+
+        return {
+            "mean_revenue" : round(np.mean(revenues), 2),
+            "std_revenue"  : round(np.std(revenues), 2),
+            "min_revenue"  : round(np.min(revenues), 2),
+            "max_revenue"  : round(np.max(revenues), 2),
+        }
 
     def plot_price_trajectory(self):
-        """
-        Plot how the price changes day-by-day over the booking window.
-        Useful for visualizing the linear decay behavior.
-        """
+        """Plot how price changes day-by-day over the booking window."""
         import matplotlib.pyplot as plt
 
-        days   = list(range(self.max_days, -1, -1))   # e.g., 30, 29, ..., 0
-        prices = [self.select_action(d) for d in days]
+        days   = list(range(self.max_days, -1, -1))
+        prices = [self.prices[self.select_action(d)] for d in days]
 
-        plt.figure(figsize=(8, 5))
-        plt.plot(days, prices, marker='o')
+        plt.figure(figsize=(10, 5))
+        plt.plot(days, prices, marker='o', color='blue', label='Time-Based Price')
         plt.xlabel("Days Remaining Until Departure")
-        plt.ylabel("Price ($)")
+        plt.ylabel("Price (Rs)")
         plt.title("Time-Based Agent: Price Trajectory")
-        plt.gca().invert_xaxis()   # so it reads left (far out) -> right (departure)
+        plt.gca().invert_xaxis()
         plt.grid(True)
+        plt.legend()
         plt.tight_layout()
+        plt.savefig("time_based_trajectory.png")
         plt.show()
+        print("Plot saved as time_based_trajectory.png")
 
 
 # -----------------------------------------------------------------------------
-# QUICK TEST (run this file directly to test the agent standalone)
+# QUICK TEST
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
-    agent = TimedBasedAgent(max_price=300, min_price=100, max_days=30)
+    print("=" * 50)
+    print("Time-Based Agent — Test Run")
+    print("=" * 50)
 
-    print("Time-Based Agent initialized.")
-    print(f"  Max Price : ${agent.max_price}")
-    print(f"  Min Price : ${agent.min_price}")
-    print(f"  Window    : {agent.max_days} days")
-    print()
-    print("Sample price decisions (days_remaining -> price):")
+    agent = TimedBasedAgent(max_days=30, high_idx=15, low_idx=2)
 
+    print("\nPrice decisions by day:")
+    print(f"{'Days Left':<12} {'Action Idx':<12} {'Price (Rs)':<12}")
+    print("-" * 36)
     for days in [30, 25, 20, 15, 10, 5, 1, 0]:
-        price = agent.select_action(days)
-        print(f"  {days:2d} days left -> ${price}")
+        idx   = agent.select_action(days)
+        price = agent.prices[idx]
+        print(f"{days:<12} {idx:<12} {price:<12}")
 
-    # Uncomment to visualize the full price trajectory
-    # agent.plot_price_trajectory()
+    print("\nRunning 100-episode evaluation...")
+    env     = AirlinePricingEnv()
+    results = agent.evaluate(env, num_episodes=100)
+
+    print("\nResults:")
+    for k, v in results.items():
+        print(f"  {k}: Rs {v}")
