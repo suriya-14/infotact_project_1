@@ -1,8 +1,7 @@
 # =============================================================================
 # run.py
 # Author      : Member 2
-# Description : Main script to train Q-Learning agent and compare
-#               performance against Time-Based baseline agent.
+# Description : Train Q-Learning agent and compare against Time-Based baseline
 # Run         : python run.py
 # =============================================================================
 
@@ -24,27 +23,29 @@ def main():
     env = AirlinePricingEnv()
 
     # ------------------------------------------------------------------
-    # 1. Evaluate Time-Based Baseline (no training needed)
+    # 1. Evaluate Time-Based Baseline
     # ------------------------------------------------------------------
     print("\n[1] Running Time-Based Baseline Agent...")
-    tb_agent  = TimedBasedAgent(max_days=30, high_idx=15, low_idx=2)
+    tb_agent   = TimedBasedAgent(max_days=30, high_idx=15, low_idx=2)
     tb_results = tb_agent.evaluate(env, num_episodes=1000)
 
     # ------------------------------------------------------------------
     # 2. Train Q-Learning Agent
     # ------------------------------------------------------------------
     print("\n[2] Training Q-Learning Agent...")
-    ql_agent  = QLearningAgent(
-        max_inventory = 50,
-        max_days      = 30,
-        num_actions   = 20,
-        alpha         = 0.1,
-        gamma         = 0.95,
-        epsilon       = 1.0,
-        epsilon_min   = 0.01,
-        epsilon_decay = 0.995,
+    ql_agent = QLearningAgent(
+        max_inventory       = 50,
+        max_days            = 30,
+        num_actions         = 20,
+        n_inventory_buckets = 10,   # bucket state space for faster learning
+        n_day_buckets       = 10,
+        alpha               = 0.2,  # higher learning rate
+        gamma               = 0.99, # value future rewards highly
+        epsilon             = 1.0,
+        epsilon_min         = 0.01,
+        epsilon_decay       = 0.9995, # slower decay = more exploration
     )
-    ql_agent.train(env, num_episodes=10000)
+    ql_agent.train(env, num_episodes=20000)
 
     # ------------------------------------------------------------------
     # 3. Evaluate Q-Learning Agent
@@ -56,14 +57,12 @@ def main():
     # 4. Compare Results
     # ------------------------------------------------------------------
     print("\n" + "=" * 55)
-    print("  RESULTS COMPARISON (1000 episodes)")
+    print("  RESULTS COMPARISON (1000 evaluation episodes)")
     print("=" * 55)
     print(f"{'Metric':<20} {'Time-Based':>15} {'Q-Learning':>15}")
     print("-" * 55)
-    print(f"{'Mean Revenue':<20} Rs {tb_results['mean_revenue']:>12,.2f} Rs {ql_results['mean_revenue']:>12,.2f}")
-    print(f"{'Std Revenue':<20} Rs {tb_results['std_revenue']:>12,.2f} Rs {ql_results['std_revenue']:>12,.2f}")
-    print(f"{'Min Revenue':<20} Rs {tb_results['min_revenue']:>12,.2f} Rs {ql_results['min_revenue']:>12,.2f}")
-    print(f"{'Max Revenue':<20} Rs {tb_results['max_revenue']:>12,.2f} Rs {ql_results['max_revenue']:>12,.2f}")
+    for key in ["mean_revenue", "std_revenue", "min_revenue", "max_revenue"]:
+        print(f"{key:<20} Rs {tb_results[key]:>12,.2f} Rs {ql_results[key]:>12,.2f}")
     print("=" * 55)
 
     improvement = ((ql_results['mean_revenue'] - tb_results['mean_revenue'])
@@ -73,7 +72,7 @@ def main():
     if improvement > 0:
         print("Q-Learning OUTPERFORMS the Time-Based baseline ✅")
     else:
-        print("Needs more training — try increasing num_episodes ⚠️")
+        print("Still training needed — increase num_episodes ⚠️")
 
     # ------------------------------------------------------------------
     # 5. Plot Results
@@ -83,7 +82,7 @@ def main():
     ql_agent.plot_policy()
     tb_agent.plot_price_trajectory()
 
-    print("\nDone! Check the generated .png files.")
+    print("\nDone! Check the .png files in your project folder.")
 
 
 if __name__ == "__main__":
