@@ -3,3 +3,5 @@ Agent,Revenue
 DQN,550000
 Q-Learning,500000
 Inventory,470000
+git add .
+git commit -m "Added sample data structure for simulation results"
