@@ -1,4 +1,5 @@
-sample_results.csv
+git add .
+gsample_results.csv
 Agent,Revenue
 DQN,550000
 Q-Learning,500000
@@ -6,3 +7,5 @@ Inventory,470000
 git add .
 git commit -m "Added sample data structure for simulation results"
 Added sample simulation dataset for dashboard testing
+git add .
+git commit -m "Added sample data for dashboard testing and evaluation"
