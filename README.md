@@ -1,186 +1,447 @@
-# ✈️ RL Dynamic Pricing — Airline Ticket Pricing with Reinforcement Learning
+# ✈️ RL Dynamic Pricing – Intelligent Airline Ticket Pricing using Reinforcement Learning
 
-> A multi-agent reinforcement learning project that simulates dynamic airline ticket pricing strategies using a custom Gymnasium environment.
+## 📌 Project Overview
 
----
+Dynamic pricing is one of the most important applications of Artificial Intelligence in the airline industry. Airlines continuously change ticket prices based on customer demand, remaining seats, and the number of days left before departure. Traditional pricing strategies rely on manually designed rules, which often fail to maximize revenue under changing market conditions.
 
-## 👥 Team
+This project develops an **Intelligent Airline Ticket Pricing System** using **Reinforcement Learning (RL)**. Instead of following predefined pricing rules, an RL agent interacts with a simulated airline booking environment, learns from experience, and discovers pricing strategies that maximize total revenue over the booking period.
 
-| Member | Role | Contribution |
-|--------|------|--------------|
-| Member 1 | Environment Architect | Custom Gym environment + Fixed Price baseline agent |
-| Member 2 | Classical Agents | Time-based pricing agent + Q-Learning agent |
-| Member 3 | Deep RL Agents | Inventory-based heuristic agent + DQN agent |
-| Member 4 | Dashboard | Streamlit simulation dashboard |
+The project compares **five different pricing agents**, ranging from simple rule-based methods to advanced Deep Reinforcement Learning, allowing us to evaluate different approaches to dynamic pricing.
 
 ---
 
-## 📁 Project Structure
+# 🎯 Objectives
+
+* Build a realistic airline ticket pricing simulator.
+* Implement multiple pricing strategies.
+* Train reinforcement learning agents to maximize revenue.
+* Compare rule-based and learning-based pricing methods.
+* Visualize agent performance using an interactive dashboard.
+
+---
+
+# 🏗 System Workflow
+
+```
+Customer Booking Environment
+            │
+            ▼
+Environment provides State
+(days remaining, inventory remaining)
+
+            │
+            ▼
+Agent selects Ticket Price
+
+            │
+            ▼
+Environment simulates Demand
+
+            │
+            ▼
+Tickets are Sold
+
+            │
+            ▼
+Revenue becomes Reward
+
+            │
+            ▼
+Agent learns better pricing strategy
+```
+
+---
+
+# 🌍 Environment
+
+**File:** `environment/airline_pricing_env.py`
+
+The custom Gymnasium environment simulates the airline booking process.
+
+### State Space
+
+The environment provides two state variables:
+
+```
+State =
+
+[
+ Days Remaining,
+ Inventory Remaining
+]
+```
+
+Example:
+
+```
+[20, 35]
+
+20 days before departure
+35 seats remaining
+```
+
+---
+
+### Action Space
+
+The agent selects one of **20 ticket prices**.
+
+Price range:
+
+```
+₹500
+↓
+
+₹10000
+```
+
+---
+
+### Demand Model
+
+Demand depends on:
+
+* Ticket Price
+* Remaining Days
+* Random customer behaviour
+
+Lower prices generally increase demand while higher prices reduce demand.
+
+---
+
+### Reward Function
+
+```
+Reward = Ticket Price × Tickets Sold
+```
+
+The objective of every agent is to maximize the total reward (revenue).
+
+---
+
+### Episode Ends When
+
+* All seats are sold
+
+OR
+
+* Flight departure day arrives
+
+---
+
+# 🤖 Pricing Agents
+
+## 1. Fixed Price Agent
+
+**Type:** Rule-Based
+
+This agent always charges the same ticket price throughout the booking window.
+
+Example:
+
+```
+Day 30 → ₹3000
+
+Day 20 → ₹3000
+
+Day 10 → ₹3000
+
+Day 1 → ₹3000
+```
+
+### Advantages
+
+* Very simple
+* No training required
+* Fast execution
+
+### Limitations
+
+* Cannot adapt to demand
+* Ignores time
+* Ignores inventory
+
+---
+
+## 2. Time-Based Agent
+
+**Type:** Rule-Based
+
+The ticket price changes only according to the number of remaining booking days.
+
+Example:
+
+```
+30 Days Left → High Price
+
+15 Days Left → Medium Price
+
+5 Days Left → Low Price
+```
+
+### Advantages
+
+* Mimics traditional airline pricing
+* Easy to understand
+
+### Limitations
+
+* Does not consider remaining seats
+
+---
+
+## 3. Q-Learning Agent
+
+**Type:** Reinforcement Learning
+
+The Q-Learning agent learns from repeated interaction with the environment.
+
+It stores knowledge inside a Q-table.
+
+```
+State
+
+↓
+
+Action
+
+↓
+
+Expected Future Reward
+```
+
+The Q-table is updated using the Bellman Equation.
+
+```
+Q(s,a)=Q(s,a)+α[r+γmaxQ(s',a')−Q(s,a)]
+```
+
+### Advantages
+
+* Learns automatically
+* Improves with experience
+
+### Limitations
+
+* Q-table becomes large for complex environments
+
+---
+
+## 4. Inventory-Based Agent
+
+**Type:** Rule-Based Heuristic
+
+This agent considers both:
+
+* Remaining inventory
+* Remaining booking days
+
+Pricing decisions are based on:
+
+### Scarcity
+
+Few seats remaining
+
+↓
+
+Increase price
+
+### Urgency
+
+Departure is close
+
+Many seats remaining
+
+↓
+
+Reduce price
+
+This produces more realistic pricing behaviour than simple rule-based agents.
+
+---
+
+## 5. Deep Q-Network (DQN)
+
+**Type:** Deep Reinforcement Learning
+
+The DQN Agent replaces the Q-table with a neural network.
+
+Architecture:
+
+```
+Input Layer
+
+2 Neurons
+
+↓
+
+Hidden Layer
+
+64 Neurons
+
+↓
+
+Hidden Layer
+
+64 Neurons
+
+↓
+
+Output Layer
+
+20 Q Values
+```
+
+The DQN agent includes:
+
+* Replay Buffer
+* Target Network
+* Neural Network
+* Experience Replay
+
+This enables the agent to generalize to unseen states and achieve higher revenue.
+
+---
+
+# 📊 Dashboard
+
+**Framework:** Streamlit
+
+The dashboard allows users to:
+
+* Select any pricing agent
+* Run booking simulations
+* View pricing decisions
+* Compare revenues
+* Display KPI cards
+* Visualize ticket prices
+* Compare all five agents
+
+Run using:
+
+```bash
+streamlit run dashboard/app.py
+```
+
+---
+
+# 📁 Project Structure
 
 ```
 rl-dynamic-pricing/
+
 │
+
 ├── environment/
-│   └── airline_pricing_env.py       # Custom Gymnasium environment (Member 1)
+
+│   └── airline_pricing_env.py
+
 │
+
 ├── agents/
-│   ├── fixed_price_agent.py         # Baseline fixed price agent (Member 1)
-│   ├── time_based_agent.py          # Time-based pricing agent (Member 2)
-│   ├── qlearning_agent.py           # Tabular Q-Learning agent (Member 2)
-│   ├── inventory_based_agent.py     # Inventory heuristic agent (Member 3)
-│   └── dqn_agent.py                 # Deep Q-Network (DQN) agent (Member 3)
+
+│   ├── fixed_price_agent.py
+
+│   ├── time_based_agent.py
+
+│   ├── qlearning_agent.py
+
+│   ├── inventory_based_agent.py
+
+│   └── dqn_agent.py
+
 │
+
 ├── models/
-│   └── dqn_weights.pth              # Trained DQN model weights (Member 3)
+
+│   └── dqn_weights.pth
+
 │
+
 ├── dashboard/
-│   └── app.py                       # Streamlit simulation dashboard (Member 4)
+
+│   └── app.py
+
 │
+
 └── README.md
 ```
 
 ---
 
-## ⚙️ Environment — `airline_pricing_env.py` (Member 1)
+# 👥 Team Contributions
 
-A custom **Gymnasium** environment simulating airline ticket demand over a booking window.
+## Member 1
 
-| Parameter | Value |
-|-----------|-------|
-| `state_dim` | 2 (days remaining, inventory remaining) |
-| `action_dim` | 20 |
-| Price Range | ₹500 – ₹10,000 |
-
-**State:** `[days_remaining, inventory_remaining]`  
-**Action:** Index into a discrete price ladder (20 price levels)  
-**Reward:** Revenue collected per step based on demand response to price  
+* Designed the Gymnasium environment
+* Implemented the demand model
+* Developed the Fixed Price Agent
 
 ---
 
-## 🤖 Agents
+## Member 2
 
-### Member 1 — Fixed Price Agent (`fixed_price_agent.py`)
-A simple baseline that applies a constant price throughout the booking window. Used as a performance benchmark for all other agents.
-
----
-
-### Member 2 — Time-Based Agent (`time_based_agent.py`)
-Adjusts pricing based on how close the flight date is. Applies higher prices far from departure and discounts as the date approaches to clear remaining seats.
-
-### Member 2 — Q-Learning Agent (`qlearning_agent.py`)
-A tabular reinforcement learning agent that learns a Q-table mapping discretized states to optimal price actions through trial-and-error interaction with the environment.
+* Developed the Time-Based Agent
+* Implemented the Q-Learning Agent
+* Performed tabular RL training
 
 ---
 
-### Member 3 — Inventory-Based Agent (`inventory_based_agent.py`)
-A rule-based heuristic agent that reacts to inventory levels in real time:
-- **Scarcity mode:** Raises prices when inventory is low
-- **Clearance mode:** Lowers prices when time is running out and seats remain
+## Member 3
 
-**Constructor parameters:**
-```python
-InventoryBasedAgent(
-    prices,           # list of 20 price levels
-    max_inventory,    # total seats available
-    max_days,         # total booking window
-    scarcity_weight,  # how aggressively to raise price under scarcity
-    urgency_weight    # how aggressively to drop price near departure
-)
-```
-
-**Key methods:** `act()`, `get_price()`, `update()`, `reset()`
+* Developed the Inventory-Based Agent
+* Implemented the DQN Agent
+* Built the Replay Buffer
+* Designed the Neural Network
+* Generated trained DQN model weights
 
 ---
 
-### Member 3 — DQN Agent (`dqn_agent.py`)
-A neural network-based deep RL agent trained with **PyTorch** using experience replay and a target network.
+## Member 4
 
-**Architecture:**
-
-| Class | Role |
-|-------|------|
-| `ReplayBuffer` | Stores past transitions for experience replay |
-| `QNetwork` | Neural net mapping state → Q-values for all 20 actions |
-| `DQNAgent` | Full training and inference logic |
-
-**Inference config:** `epsilon = 0` (greedy policy, no exploration)  
-**Trained weights:** `models/dqn_weights.pth`
-
-**Loading for inference:**
-```python
-from agents.dqn_agent import DQNAgent
-
-agent = DQNAgent(state_dim=2, action_dim=20)
-agent.load("models/dqn_weights.pth")
-action = agent.act(state)
-```
+* Developed the Streamlit dashboard
+* Created interactive charts
+* Implemented KPI cards
+* Built simulation comparison interface
 
 ---
 
-### Member 4 — Streamlit Dashboard (`dashboard/app.py`)
+# 📈 Agent Comparison
 
-An interactive web dashboard to simulate and compare all agents visually.
-
-**Features:**
-- Agent selector (choose which agent to simulate)
-- Day-by-day simulation table
-- Price trajectory chart
-- Revenue comparison chart across all agents
-- 1000-simulation Monte Carlo mode for statistical comparison
-- KPI cards (total revenue, avg price, seats sold)
-- Optional inventory heatmap
-
-**Run the dashboard:**
-```bash
-streamlit run dashboard/app.py
-```
-
-**Handoff parameters from Member 3:**
-```python
-state_dim   = 2
-action_dim  = 20
-price_min   = 500    # ₹
-price_max   = 10000  # ₹
-weights_path = "models/dqn_weights.pth"
-```
+| Agent           | Uses Time | Uses Inventory | Learns | Complexity |
+| --------------- | --------- | -------------- | ------ | ---------- |
+| Fixed Price     | ❌         | ❌              | ❌      | Very Low   |
+| Time-Based      | ✅         | ❌              | ❌      | Low        |
+| Q-Learning      | ✅         | ✅              | ✅      | Medium     |
+| Inventory-Based | ✅         | ✅              | ❌      | Medium     |
+| DQN             | ✅         | ✅              | ✅      | High       |
 
 ---
 
-## 🚀 Setup & Installation
+# 🛠 Technology Stack
 
-```bash
-# Clone the repository
-git clone https://github.com/<your-repo>/rl-dynamic-pricing.git
-cd rl-dynamic-pricing
-
-# Install dependencies
-pip install gymnasium torch numpy streamlit
-
-# Train the DQN agent (optional — weights already included)
-python agents/dqn_agent.py
-
-# Launch the dashboard
-streamlit run dashboard/app.py
-```
+* Python
+* Gymnasium
+* PyTorch
+* NumPy
+* Pandas
+* Matplotlib
+* Streamlit
 
 ---
 
-## 📊 Agent Comparison (Expected)
+# 🚀 Future Scope
 
-| Agent | Strategy | Strengths |
-|-------|----------|-----------|
-| Fixed Price | Constant pricing | Simple baseline |
-| Time-Based | Date-proximity discounting | Predictable, interpretable |
-| Q-Learning | Tabular RL | Learns from experience |
-| Inventory-Based | Stock-aware heuristic | Real-time reactive |
-| DQN | Deep RL | Best generalization |
-
----
-
-## 🏫 Project Info
-
-**Course:** B.Tech — Artificial Intelligence & Data Science  
-**Institution:** SNS College of Engineering, Coimbatore  
-**Type:** Internship Project — Reinforcement Learning  
+* Real airline datasets
+* Multiple flight scheduling
+* Competitor pricing
+* Weather-based demand prediction
+* Holiday and festival demand modelling
+* Multi-Agent Reinforcement Learning
+* Cloud deployment
 
 ---
+
+# ✅ Conclusion
+
+This project demonstrates how Reinforcement Learning can be applied to solve real-world airline ticket pricing problems. By comparing rule-based and learning-based approaches, we show that intelligent agents can learn pricing strategies that adapt to changing demand, remaining inventory, and booking time. Among all implemented methods, the Deep Q-Network (DQN) provides the highest potential for maximizing airline revenue and serves as the most advanced solution in this project.
