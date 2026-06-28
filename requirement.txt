@@ -1,1 +1,22 @@
+# ============================================================
+#  RL Dynamic Pricing — Airline Ticket Pricing
+#  Full Project Requirements (All Members Combined)
+# ============================================================
 
+# ── Core ────────────────────────────────────────────────────
+numpy>=1.24.0
+pandas>=2.0.0
+
+# ── Reinforcement Learning Environment (Member 1) ───────────
+gymnasium>=0.29.0
+
+# ── Deep Learning / DQN Agent (Member 3) ────────────────────
+torch>=2.0.0
+
+# ── Dashboard (Member 4) ────────────────────────────────────
+streamlit>=1.32.0
+matplotlib>=3.7.0
+plotly>=5.18.0
+
+# ── Utilities ───────────────────────────────────────────────
+tqdm>=4.66.0
