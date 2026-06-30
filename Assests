@@ -1,2 +1,4 @@
 git add .
 git commit -m "Added assets directory for dashboard screenshots and documentation"
+git add .
+git commit -m "Organized project assets for dashboard resources"
