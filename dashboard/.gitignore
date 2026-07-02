@@ -4,3 +4,5 @@ git push origin Mani
 git commit -m "Added sidebar, input fields and improved Streamlit UI"
 git add .
 git commit -m "Improved dashboard documentation and project organization"
+git add .
+git commit -m "Improved dashboard code structure and enhanced application maintainability"
