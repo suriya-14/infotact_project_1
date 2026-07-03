@@ -22,32 +22,24 @@ The project compares **five different pricing agents**, ranging from simple rule
 
 # 🏗 System Workflow
 
-```
-Customer Booking Environment
-            │
-            ▼
-Environment provides State
-(days remaining, inventory remaining)
+```mermaid
+graph TD
+    %% Node Styles
+    style Env fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px
+    style State fill:#e8f5e9,stroke:#4caf50,stroke-width:2px
+    style Action fill:#fff3e0,stroke:#ff9800,stroke-width:2px
+    style Demand fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style Sold fill:#ffebee,stroke:#f44336,stroke-width:2px
+    style Reward fill:#fffde7,stroke:#fbc02d,stroke-width:2px
+    style Learn fill:#e0f2f1,stroke:#009688,stroke-width:2px
 
-            │
-            ▼
-Agent selects Ticket Price
-
-            │
-            ▼
-Environment simulates Demand
-
-            │
-            ▼
-Tickets are Sold
-
-            │
-            ▼
-Revenue becomes Reward
-
-            │
-            ▼
-Agent learns better pricing strategy
+    Env[Customer Booking Environment] --> State[Environment Provides State: Days & Inventory Remaining]
+    State --> Action[Agent Selects Ticket Price]
+    Action --> Demand[Environment Simulates Demand]
+    Demand --> Sold[Tickets are Sold]
+    Sold --> Reward[Revenue Becomes Reward]
+    Reward --> Learn[Agent Learns Better Pricing Strategy]
+    Learn -.->|Updates Policy| Action
 ```
 
 ---
