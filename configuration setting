@@ -1,1 +1,7 @@
-
+APP_TITLE = "RL Dynamic Pricing Dashboard"
+DEFAULT_DAYS = 30
+DEFAULT_SEATS = 50
+MIN_PRICE = 2000
+MAX_PRICE = 10000
+git add .
+git commit -m "Added configuration module for dashboard settings"
